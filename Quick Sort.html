@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quicksort Interactive Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e1e2f, #2a2a4e);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-align: center;
+            background: linear-gradient(90deg, #00c4ff, #00ff88, #00c4ff);
+            background-size: 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 3s ease infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .explanation {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        button, .slider-container, .input-container {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #00c4ff, #00ff88);
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover, .slider-container:hover, .input-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .slider-container, .input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        input[type="range"] {
+            accent-color: #00ff88;
+        }
+
+        input[type="text"] {
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            padding: 5px;
+            font-size: 1em;
+        }
+
+        .visualization {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .bars {
+            display: flex;
+            gap: 5px;
+            height: 200px;
+            align-items: flex-end;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .bar {
+            flex: 1;
+            max-width: 40px;
+            background: linear-gradient(45deg, #ffffff, #cccccc);
+            border-radius: 5px;
+            transition: height 0.3s ease, background 0.3s ease;
+            position: relative;
+            cursor: move;
+        }
+
+        .bar.pivot { background: linear-gradient(45deg, #ff4444, #ff8888); }
+        .bar.comparing { background: linear-gradient(45deg, #44ff44, #88ff88); }
+        .bar.swapping { background: linear-gradient(45deg, #ffaa00, #ffdd88); }
+
+        .bar span {
+            position: absolute;
+            top: -25px;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            font-size: 0.9em;
+        }
+
+        .status {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            font-size: 1em;
+        }
+
+        .watermark {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8em; }
+            .container { padding: 15px; }
+            .controls { flex-direction: column; align-items: center; }
+            .bar { max-width: 30px; }
+            .explanation { font-size: 1em; }
+            input[type="text"] { width: 100%; }
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quicksort Interactive Simulation</h1>
+        <div class="explanation">
+            <strong>Quicksort</strong> is a divide-and-conquer sorting algorithm that selects a <em>pivot</em> element, partitions the array around it (smaller elements to the left, larger to the right), and recursively sorts the sub-arrays. Use the controls to adjust the array size, enter custom values (numbers or letters, e.g., "5,10,3" or "A,C,B"), randomize, or step through the sorting process. Drag bars to reorder manually!
+        </div>
+        <div class="controls">
+            <div class="slider-container tooltip" data-tooltip="Adjust the number of elements (affects random arrays)">
+                <label for="size">Array Size: <span id="size-value">10</span></label>
+                <input type="range" id="size" min="5" max="20" value="10">
+            </div>
+            <div class="input-container tooltip" data-tooltip="Enter comma-separated numbers or letters (e.g., 5,10,3 or A,B,C)">
+                <input type="text" id="custom-input" placeholder="e.g., 5,10,3 or A,B,C">
+                <button id="set-custom">Set Custom Array</button>
+            </div>
+            <button id="randomize" class="tooltip" data-tooltip="Generate a random array">Randomize Array</button>
+            <button id="step" class="tooltip" data-tooltip="Perform one step of Quicksort">Step Sort</button>
+            <button id="auto" class="tooltip" data-tooltip="Sort automatically with animation">Auto Sort</button>
+            <button id="reset" class="tooltip" data-tooltip="Reset to initial array">Reset</button>
+        </div>
+        <div class="visualization">
+            <div class="bars" id="bars"></div>
+            <div class="status" id="status">Enter a custom array or click "Randomize Array" to start!</div>
+        </div>
+        <div class="watermark">Muhammad Mashhood From TGC Academy</div>
+    </div>
+
+    <script>
+        let array = [];
+        let originalArray = [];
+        let steps = [];
+        let currentStep = 0;
+        let isAutoSorting = false;
+        let size = 10;
+        let isAlphabetMode = false;
+
+        function initArray(customValues = null) {
+            if (customValues) {
+                array = customValues;
+                size = array.length;
+                document.getElementById('size').value = size;
+                document.getElementById('size-value').textContent = size;
+            } else {
+                array = Array.from({ length: size }, () => Math.floor(Math.random() * 100) + 1);
+                isAlphabetMode = false;
+            }
+            originalArray = array.slice();
+            steps = [];
+            currentStep = 0;
+            quicksortWithSteps(array.slice(), 0, array.length - 1);
+            renderBars();
+            updateStatus(customValues ? "Custom array loaded. Click 'Step Sort' or 'Auto Sort' to begin." : "Random array initialized. Click 'Step Sort' or 'Auto Sort' to begin.");
+        }
+
+        function validateCustomInput(input) {
+            const values = input.split(',').map(v => v.trim()).filter(v => v !== '');
+            if (values.length < 5 || values.length > 20) {
+                updateStatus("Error: Please enter 5 to 20 values.");
+                return null;
+            }
+            const isNumbers = values.every(v => /^\d+$/.test(v));
+            const isLetters = values.every(v => /^[A-Za-z]$/.test(v));
+            if (!isNumbers && !isLetters) {
+                updateStatus("Error: Enter only numbers (e.g., 5,10,3) or single letters (e.g., A,B,C).");
+                return null;
+            }
+            isAlphabetMode = isLetters;
+            return isLetters ? values.map(v => v.toUpperCase()) : values.map(v => parseInt(v));
+        }
+
+        function getBarHeight(value) {
+            if (isAlphabetMode) {
+                const ascii = value.charCodeAt(0) - 65; // A=0, B=1, ..., Z=25
+                return (ascii + 1) * 7; // Scale for visibility (7px per letter)
+            }
+            return value * 1.5; // Scale numbers
+        }
+
+        function renderBars() {
+            const barsContainer = document.getElementById('bars');
+            barsContainer.innerHTML = '';
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = `${getBarHeight(value)}px`;
+                bar.innerHTML = `<span>${value}</span>`;
+                bar.draggable = true;
+                bar.dataset.index = index;
+                barsContainer.appendChild(bar);
+            });
+            addDragListeners();
+        }
+
+        function addDragListeners() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                bar.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('index', bar.dataset.index);
+                });
+                bar.addEventListener('dragover', (e) => e.preventDefault());
+                bar.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const fromIndex = parseInt(e.dataTransfer.getData('index'));
+                    const toIndex = parseInt(bar.dataset.index);
+                    [array[fromIndex], array[toIndex]] = [array[toIndex], array[fromIndex]];
+                    renderBars();
+                    updateStatus(`Swapped elements ${array[fromIndex]} and ${array[toIndex]} at positions ${fromIndex} and ${toIndex}.`);
+                });
+            });
+        }
+
+        function quicksortWithSteps(arr, low, high) {
+            if (low < high) {
+                const pi = partition(arr, low, high);
+                quicksortWithSteps(arr, low, pi - 1);
+                quicksortWithSteps(arr, pi + 1, high);
+            }
+        }
+
+        function partition(arr, low, high) {
+            const pivot = arr[high];
+            steps.push({ type: 'pivot', index: high });
+            let i = low - 1;
+            for (let j = low; j < high; j++) {
+                steps.push({ type: 'compare', indices: [j, high] });
+                const compareResult = isAlphabetMode
+                    ? arr[j].localeCompare(pivot) <= 0
+                    : arr[j] <= pivot;
+                if (compareResult) {
+                    i++;
+                    if (i !== j) {
+                        [arr[i], arr[j]] = [arr[j], arr[i]];
+                        steps.push({ type: 'swap', indices: [i, j] });
+                    }
+                }
+            }
+            if (i + 1 !== high) {
+                [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+                steps.push({ type: 'swap', indices: [i + 1, high] });
+            }
+            return i + 1;
+        }
+
+        function applyStep() {
+            if (currentStep >= steps.length) {
+                updateStatus("Sorting complete!");
+                isAutoSorting = false;
+                return false;
+            }
+            const step = steps[currentStep];
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => bar.classList.remove('pivot', 'comparing', 'swapping'));
+            if (step.type === 'pivot') {
+                bars[step.index].classList.add('pivot');
+                updateStatus(`Selected pivot: ${array[step.index]} at index ${step.index}`);
+            } else if (step.type === 'compare') {
+                step.indices.forEach(idx => bars[idx].classList.add('comparing'));
+                updateStatus(`Comparing ${array[step.indices[0]]} with pivot ${array[step.indices[1]]}`);
+            } else if (step.type === 'swap') {
+                [array[step.indices[0]], array[step.indices[1]]] = [array[step.indices[1]], array[step.indices[0]]];
+                renderBars();
+                bars[step.indices[0]].classList.add('swapping');
+                bars[step.indices[1]].classList.add('swapping');
+                updateStatus(`Swapped ${array[step.indices[0]]} and ${array[step.indices[1]]} at indices ${step.indices[0]} and ${step.indices[1]}`);
+            }
+            currentStep++;
+            return true;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        document.getElementById('size').addEventListener('input', (e) => {
+            size = parseInt(e.target.value);
+            document.getElementById('size-value').textContent = size;
+            initArray();
+        });
+
+        document.getElementById('set-custom').addEventListener('click', () => {
+            const input = document.getElementById('custom-input').value;
+            const values = validateCustomInput(input);
+            if (values) {
+                initArray(values);
+                document.getElementById('custom-input').value = '';
+            }
+        });
+
+        document.getElementById('randomize').addEventListener('click', () => initArray());
+
+        document.getElementById('step').addEventListener('click', () => {
+            if (!isAutoSorting) applyStep();
+        });
+
+        document.getElementById('auto').addEventListener('click', () => {
+            if (!isAutoSorting) {
+                isAutoSorting = true;
+                function autoStep() {
+                    if (isAutoSorting && applyStep()) {
+                        setTimeout(autoStep, 1000);
+                    }
+                }
+                autoStep();
+            }
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            isAutoSorting = false;
+            currentStep = 0;
+            array = originalArray.slice();
+            steps = [];
+            quicksortWithSteps(array.slice(), 0, array.length - 1);
+            renderBars();
+            updateStatus("Reset to initial array.");
+        });
+
+        initArray();
+    </script>
+</body>
+</html>
